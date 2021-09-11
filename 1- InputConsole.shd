@@ -1,0 +1,84 @@
+&terminal => object_add();
+
+key_enter;
+
+@onmain {
+	key_enter = KeyGet( KeyEnt );
+	
+	event( &terminal, 'step', @fn {
+		@cond ( KeyPressed( key_enter ) ) {
+			!on; @cond ( !on ) {
+				// get command & clear string
+				cmd~= inp_str; inp_str = '';
+				
+				execute_string( cmd );
+				//prt( 'command: ' + cmd ); //msg( 'command: ' + inp_str ); // process command ...
+			} @else {
+				ot = Time(); // open-time
+				KeyStreamReset(); // clear key states
+			}
+		}
+		
+		@cond ( on ) {
+			StreamKeys( inp_list );
+			
+			@cond ( inp_list->size != 0 ) {
+				i~=0, e~=inp_list->size; @loop (i<e) {
+					stx~= inp_list[i];
+					@cond ( stx < 98 ) {
+						@cond ( stx != 0x41 && stx != 0x42 ) { // 0x41 != stx != 0x42
+							inp_str+=_stx_chr[stx];
+						}
+					} @elif ( stx == _kst_BACKSPACE ) {
+						@test ( inp_str != '' ) {
+							inp_str = substr( inp_str, 0, strlen(inp_str)-1 );
+						}
+					}
+					
+					i++;
+				}
+				
+				inp_list->clear();
+			}
+		}
+	});
+	
+	event( &terminal, 'draw', @fn {
+		@cond ( on ) {
+			mr~= 4; // margin
+			
+			str~;
+			@cond ( sin( (Time()-ot)*pi*2 * 2 ) < 0 ) {
+				str = inp_str;
+			} @else {
+				str = inp_str + '_';
+			}
+			
+			fstr~= inp_str+'_'; // full-string
+			draw_style( c_black, 1.0, -1, fa_left, fa_top );
+			
+			// get terminal width/height
+			tw~, th~= string_width(fstr) + mr*2, string_height(fstr) + mr*2;
+			// get terminal x/y
+			tx~, ty~= 10, room_height-th-10;
+			DrawRect( tx, ty, tw, th );
+			draw_style( c_yellow, 1.0 );
+			draw_text( tx+mr, ty+mr, str );
+		}
+		
+	});
+	
+	@with (create(&terminal)) {
+		persistent = true;
+		
+		inp_list = [];
+		inp_str  = '';
+		
+		depth = -900*1000;
+		
+		on = false; // terminal toggle
+		ot = 0;     // open-time
+		
+	}
+}
+

@@ -1,0 +1,67 @@
+// close request
+&close => false;
+// ESC timer
+$esc_tmr => 0;
+
+@onmain -32000 {
+	logclr();
+}
+
+@onmain -4000 {
+	room_goto_next();
+}
+
+bg => c_gray;
+&oMain => object_add();
+@onmain 4000 {
+	event( &oMain, 'room-start', @fn {
+		@test ( room == rmGame ) {
+			caster_loop( caster_load( 'data/sounds/funky.ogg' ), 1.0, 1.0 );
+		}
+	});
+	
+	event( &oMain, 'step-begin', @fn {
+		$run();
+		$WDS_run();
+		$debugTools();
+		$KeysUpdate();
+		
+		// hold escape to exit
+		@test ( keyboard_check_direct( vk_escape ) && WindowActive ) {
+			$esc_tmr+=ts;
+			@test ( $esc_tmr >= 0.5 ) { game_end() }
+		} @else {
+			$esc_tmr = 0;
+		}
+		
+	});
+	
+	event( &oMain, 'step-end', @fn {
+		@test ( &close ) {
+			!&close;
+			game_end();
+		}
+	});
+	
+	event( &oMain, 'draw', @fn {
+		@test ( room == rmGame ) {
+			draw_clear( bg );
+			draw_style( c_white, 1.0, -1, fa_center, fa_center );
+			draw_text( room_width/2, room_height/2, '<test application w/ audio>' );
+		}
+		
+		@test ( debug_mode ) {
+			csDraw();
+		}
+	});
+	
+	event( &oMain, 'close', @fn {
+		&close = true;
+	});
+	
+	@with (create( &oMain )) {
+		persistent = true;
+		depth = -5000;
+	}
+}
+
